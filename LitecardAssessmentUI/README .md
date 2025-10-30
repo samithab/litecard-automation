@@ -1,4 +1,4 @@
-# 🧩 LiteCard UI Automation Framework
+# LiteCard UI Automation Framework
 
 ## Overview
 
