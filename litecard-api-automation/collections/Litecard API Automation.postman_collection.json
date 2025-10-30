@@ -1,0 +1,537 @@
+{
+	"info": {
+		"_postman_id": "50648aaa-7f94-426d-b251-f78868e9ef7e",
+		"name": "Litecard API Automation",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "37637032"
+	},
+	"item": [
+		{
+			"name": "Update Birthday",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// ---------- Pre-request Script (Process Card - Clean Version) ----------",
+							"",
+							"// Get cardId from CSV iteration and convert to string",
+							"const csvCardId = String(pm.iterationData.get('cardId')).trim();",
+							"pm.variables.set('CURRENT_CARDID', csvCardId);",
+							"",
+							"// Get comma-separated birthday update IDs from environment",
+							"const bdayRaw = pm.environment.get('BDAY_IDS') || '';",
+							"const bdayIds = bdayRaw.split(',').map(s => String(s).trim()).filter(Boolean);",
+							"",
+							"// Determine action",
+							"let action = 'SKIP';",
+							"if (bdayIds.includes(csvCardId)) {",
+							"    action = 'BDAY';",
+							"}",
+							"",
+							"pm.variables.set('PROCESS_ACTION', action);",
+							"",
+							"if (pm.info.iteration === 0) {",
+							"    console.log('Birthday update target IDs:', bdayIds);",
+							"}",
+							"",
+							"console.log(`Current Card: ${csvCardId} | Action: ${action}`);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ---------- Tests script (Process Card - Clean Version) ----------",
+							"",
+							"const cardId = pm.variables.get('CURRENT_CARDID');",
+							"const action = pm.variables.get('PROCESS_ACTION');",
+							"const baseUrl = 'https://bff-api.demo.litecard.io/api/v1';",
+							"const authToken = pm.environment.get('AUTH_TOKEN');",
+							"const newBirthday = pm.environment.get('NEW_BIRTHDAY') || '2025-10-25T10:26:01.963Z';",
+							"",
+							"// ---------- Helper Functions ----------",
+							"function makeHeaders() {",
+							"    const headers = { 'Content-Type': 'application/json' };",
+							"    if (authToken && authToken.trim() !== '') {",
+							"        headers['Authorization'] = 'Bearer ' + authToken;",
+							"    }",
+							"    return headers;",
+							"}",
+							"",
+							"function patchBirthday(cardId, birthdayIso, done) {",
+							"    const url = `${baseUrl}/card`;",
+							"    const req = {",
+							"        url: url,",
+							"        method: 'PATCH',",
+							"        header: makeHeaders(),",
+							"        body: {",
+							"            mode: 'raw',",
+							"            raw: JSON.stringify({",
+							"                cardId: String(cardId),",
+							"                cardPayload: { birthday: birthdayIso }",
+							"            })",
+							"        }",
+							"    };",
+							"    console.log('➡️ PATCH body:', req.body.raw);",
+							"    pm.sendRequest(req, (err, res) => {",
+							"        if (err) {",
+							"            console.error('PATCH error', err);",
+							"            pm.test('PATCH request succeeded', () => { pm.expect(err).to.be.null; });",
+							"            return done && done(err);",
+							"        }",
+							"        pm.test('PATCH response status is 200–299', () => {",
+							"            pm.expect(res.code).to.be.within(200, 299);",
+							"        });",
+							"        done && done(null, res);",
+							"    });",
+							"}",
+							"",
+							"function getCardAndAssertBirthday(cardId, expectedBirthday, done) {",
+							"    const url = `${baseUrl}/card/${encodeURIComponent(cardId)}`;",
+							"    const req = { url, method: 'GET', header: makeHeaders() };",
+							"",
+							"    pm.sendRequest(req, (err, res) => {",
+							"        if (err) {",
+							"            console.error('GET error', err);",
+							"            pm.test('GET card succeeded', () => pm.expect(err).to.be.null);",
+							"            return done && done(err);",
+							"        }",
+							"",
+							"        pm.test('GET card response status is 200–299', () => {",
+							"            pm.expect(res.code).to.be.within(200, 299);",
+							"        });",
+							"",
+							"        let json;",
+							"        try { json = res.json(); } catch { json = null; }",
+							"",
+							"        const found = json?.cardOwnerCopy?.birthday;  // <-- correct path",
+							"        console.log('Extracted birthday from GET:', found);",
+							"",
+							"        const actualIso = new Date(found).toISOString().slice(0, 19);",
+							"        const expectedIso = new Date(expectedBirthday).toISOString().slice(0, 19);",
+							"",
+							"        pm.test('Card response contains expected birthday', function () {",
+							"            pm.expect(actualIso, 'birthday value').to.eql(expectedIso);",
+							"        });",
+							"",
+							"        done && done(null, res);",
+							"    });",
+							"}",
+							"",
+							"// ---------- Main Logic ----------",
+							"if (action === 'BDAY') {",
+							"    console.log('🎉 Updating birthday for', cardId);",
+							"    patchBirthday(cardId, newBirthday, (err) => {",
+							"        if (!err) {",
+							"            // Verify after update",
+							"            getCardAndAssertBirthday(cardId, newBirthday, () => {",
+							"                console.log('Verified birthday for', cardId);",
+							"            });",
+							"        }",
+							"    });",
+							"} else {",
+							"    console.log('Skipping cardId', cardId, '(not in BDAY_IDS)');",
+							"    pm.test('Skipped non-birthday card', () => pm.expect(true).to.be.true);",
+							"}",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://postman-echo.com/get",
+					"protocol": "https",
+					"host": [
+						"postman-echo",
+						"com"
+					],
+					"path": [
+						"get"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Process INACTIVE Logic",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// ===============================",
+							"// Controller: Process INACTIVE Logic",
+							"// ===============================",
+							"",
+							"// Read cardId from current CSV iteration",
+							"const csvCardId = String(pm.iterationData.get('cardId')).trim();",
+							"const inactiveId = String(pm.environment.get('INACTIVE_ID')).trim();",
+							"",
+							"// Store current cardId in ENVIRONMENT scope (so next request can access)",
+							"pm.environment.set('CURRENT_CARDID', csvCardId);",
+							"",
+							"if (csvCardId === inactiveId) {",
+							"    console.log('This card matches INACTIVE_ID:', csvCardId);",
+							"    postman.setNextRequest('Update Card Status - INACTIVE'); // run next request",
+							"} else {",
+							"    console.log('Skipping cardId', csvCardId, 'for INACTIVE update');",
+							"    postman.setNextRequest('Process DELETED Logic'); // stop iteration",
+							"}",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Controller executed', () => pm.expect(true).to.be.true);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://postman-echo.com/get",
+					"protocol": "https",
+					"host": [
+						"postman-echo",
+						"com"
+					],
+					"path": [
+						"get"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Card Status - INACTIVE",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"const cardId = pm.variables.get('CURRENT_CARDID');",
+							"const baseUrl = pm.environment.get('BASE_URL');",
+							"const token = pm.environment.get('AUTH_TOKEN');",
+							"",
+							"console.log('Sending INACTIVE update for', cardId);",
+							"",
+							"pm.test('INACTIVE update responded', function () {",
+							"    pm.expect(pm.response).to.have.property('code');",
+							"});",
+							"",
+							"const resBody = pm.response.json();",
+							"const statusCode = pm.response.code;",
+							"",
+							"if (statusCode === 200) {",
+							"    console.log('Card successfully marked as INACTIVE:', cardId);",
+							"    pm.sendRequest({",
+							"        url: `${baseUrl}/card/${cardId}`,",
+							"        method: 'GET',",
+							"        header: { 'Authorization': 'Bearer ' + token }",
+							"    }, (err, res) => {",
+							"        if (!err) {",
+							"            const json = res.json();",
+							"            pm.test('Card status is INACTIVE', () => {",
+							"                pm.expect(json.status).to.eql('INACTIVE');",
+							"            });",
+							"        }",
+							"    });",
+							"} else if (",
+							"    (statusCode === 400 || statusCode === 409) &&",
+							"    resBody.message?.toLowerCase().includes('already inactive')",
+							") {",
+							"    console.log('⚠️ Card already inactive:', cardId);",
+							"    pm.test('Card already inactive', () =>",
+							"        pm.expect(resBody.message.toLowerCase()).to.include('already inactive'));",
+							"} else {",
+							"    console.error('❌ Unexpected response:', statusCode, resBody);",
+							"    pm.test('Unexpected status', () => pm.expect.fail(`Unexpected: ${statusCode}`));",
+							"    // Move to next controller after finishing INACTIVE",
+							"    postman.setNextRequest('Process DELETED Logic');",
+							"}",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"cardId\": \"{{CURRENT_CARDID}}\",\n  \"status\": \"INACTIVE\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/card/status",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"card",
+						"status"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Process DELETED Logic",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"const csvCardId = String(pm.iterationData.get('cardId')).trim();",
+							"const deletedId = String(pm.environment.get('DELETED_ID')).trim();",
+							"",
+							"pm.environment.set('CURRENT_CARDID', csvCardId);",
+							"",
+							"if (csvCardId === deletedId) {",
+							"    console.log('This card matches DELETED_ID:', csvCardId);",
+							"    postman.setNextRequest('Update Card Status - DELETED');",
+							"} else {",
+							"    console.log('Skipping cardId', csvCardId, 'for DELETED update');",
+							"    postman.setNextRequest(null);",
+							"}",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Controller executed', () => pm.expect(true).to.be.true);",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true,
+				"disabledSystemHeaders": {}
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{AUTH_TOKEN}}",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://postman-echo.com/get",
+					"protocol": "https",
+					"host": [
+						"postman-echo",
+						"com"
+					],
+					"path": [
+						"get"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Card Status - DELETED",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// ===============================",
+							"// Tests - DELETED",
+							"// ===============================",
+							"",
+							"const cardId = pm.environment.get('CURRENT_CARDID');",
+							"const baseUrl = pm.environment.get('BASE_URL');",
+							"const token = pm.environment.get('AUTH_TOKEN');",
+							"",
+							"console.log('🚀 Sending DELETED update for', cardId);",
+							"",
+							"// Basic response validation",
+							"pm.test('DELETED update responded', function () {",
+							"    pm.expect(pm.response).to.have.property('code');",
+							"});",
+							"",
+							"// Try to parse JSON safely",
+							"let resBody = {};",
+							"try {",
+							"    resBody = pm.response.json();",
+							"} catch (e) {",
+							"    console.warn('Response not JSON, skipping parse');",
+							"}",
+							"",
+							"const statusCode = pm.response.code;",
+							"",
+							"// === Handle Success ===",
+							"if (statusCode === 200) {",
+							"    console.log('Card successfully marked as DELETED:', cardId);",
+							"",
+							"    // Verify via GET /card/{id}",
+							"    pm.sendRequest({",
+							"        url: `${baseUrl}/card/${cardId}`,",
+							"        method: 'GET',",
+							"        header: { 'Authorization': 'Bearer ' + token }",
+							"    }, (err, res) => {",
+							"        if (err) {",
+							"            console.error('GET error:', err);",
+							"        } else {",
+							"            const json = res.json();",
+							"            console.log('GET response for DELETED:', json);",
+							"",
+							"            pm.test('Card status is DELETED', function () {",
+							"                pm.expect(json.status).to.eql('DELETED');",
+							"            });",
+							"        }",
+							"    });",
+							"",
+							"// === Handle Already Deleted ===",
+							"} else if (",
+							"    statusCode === 404 &&",
+							"    resBody.message === \"Not found. Card has been deleted\" &&",
+							"    resBody.errorCode === \"CARD_NOT_FOUND\"",
+							") {",
+							"    console.warn(`Card ${cardId} already deleted.`);",
+							"    console.log('Verify log: This Card is already deleted');",
+							"",
+							"    pm.test('Card already deleted - acceptable state', function () {",
+							"        pm.expect(resBody.message).to.eql(\"Not found. Card has been deleted\");",
+							"    });",
+							"",
+							"// === Unexpected Response ===",
+							"} else {",
+							"    console.error('❌ Unexpected response:', statusCode, resBody);",
+							"    pm.test('Unexpected status', function () {",
+							"        pm.expect.fail(`Unexpected status: ${statusCode}`);",
+							"    });",
+							"}",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{AUTH_TOKEN}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"cardId\": \"{{CURRENT_CARDID}}\",\n  \"status\": \"DELETED\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{BASE_URL}}/card/status",
+					"host": [
+						"{{BASE_URL}}"
+					],
+					"path": [
+						"card",
+						"status"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
