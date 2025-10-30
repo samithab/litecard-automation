@@ -157,8 +157,8 @@ newman run LiteCard_API_Automation.postman_collection.json   -e LiteCard_Environ
 | Data Export | Generates `email_to_cardId.csv`
 | API Auth | Authenticates & stores token 
 | API Birthday Update | 5 passes with ISO 8601 format 
-| API Status Update | 2 passes set to INACTIVE 
-| API Delete | 2 passes deleted & verified
+| API Status Update | 1 passes set to INACTIVE 
+| API Delete | 1 passes deleted & verified
 
 ---
 
