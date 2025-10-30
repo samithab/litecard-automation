@@ -172,7 +172,7 @@ newman run LiteCard_API_Automation.postman_collection.json   -e LiteCard_Environ
 
 ---
 
-## CI Integration (Optional)
+## CI Integration (Future Enhancement)
 GitHub Actions workflow `.github/workflows/ci.yml` automatically runs:
 ```yaml
 name: Java CI
@@ -193,12 +193,6 @@ jobs:
 
 ---
 
-## Collaborators
-This project grants reviewer access to:
-- **Nimesh** — Reviewer / QA Lead  
-- **Danny** — Reviewer / Automation Lead  
-
----
 
 ## Deliverables Summary
 
@@ -211,7 +205,7 @@ This project grants reviewer access to:
 
 ---
 
-## 🏁 How to Review
+## How to Review
 1. Clone or open this repo in GitHub.  
 2. Review:
    - `ui-automation/src/test/...` for Selenium logic.
