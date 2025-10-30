@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Litecard Automation Suite" parallel="false" verbose="1">
+
+    <!-- Set global parameters (optional) -->
+    <parameter name="browser" value="chrome" />
+    <parameter name="env" value="staging" />
+
+    <listeners>
+        <listener class-name="com.litecard.listeners.TestListener"/>
+    </listeners>
+
+
+    <!--  UI Signup Test Suite     -->
+
+    <test name="Public Signup Form Automation">
+        <classes>
+            <class name="com.litecard.ui.tests.SignupTest"/>
+        </classes>
+    </test>
+
+
+    <!--  Admin Extract Test Suite -->
+
+    <test name="Admin Dashboard Extract Automation">
+        <classes>
+            <class name="com.litecard.ui.tests.AdminExtractTest"/>
+        </classes>
+    </test>
+
+</suite>
