@@ -1,4 +1,4 @@
-# 🧪 Litecard API Automation (Postman)
+# Litecard API Automation (Postman)
 
 ## Overview
 This project automates the **Litecard API testing workflow** using **Postman**.  
