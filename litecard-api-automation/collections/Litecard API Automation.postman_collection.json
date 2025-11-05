@@ -78,7 +78,7 @@
 							"            })",
 							"        }",
 							"    };",
-							"    console.log('➡️ PATCH body:', req.body.raw);",
+							"    console.log('PATCH body:', req.body.raw);",
 							"    pm.sendRequest(req, (err, res) => {",
 							"        if (err) {",
 							"            console.error('PATCH error', err);",
